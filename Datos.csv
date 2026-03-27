@@ -1,0 +1,20 @@
+id_obs;videojuego;modelo;categoria_patron;descripcion;ubicacion_ui;frecuencia_sesion;retorica_color;retorica_tamano;sesgo_psicologico;ref_captura;marca_tiempo;clicks;alerta_sonora
+OBS_001;Fortnite;F2P;Nagging;Pantalla inicio de sesion con los personajes de la temporada;Menu_Principal;1;Multicolor;Grande;FOMO;FN_01;0:00:55;;
+OBS_002;Fortnite;F2P;Nagging;Ventana con eventos y anuncios del videojuego;Menu_Principal;1;Multicolor;Pequeno;Sobrecarga_Cognitiva;FN_02;0:01:08;;
+OBS_003;Fortnite;F2P;Near_Miss;Pantalla de eventos con barra de progreso;Menu_Principal;1;Multicolor;Medio;Efecto_Zeigarnik;FN_03;0:01:12;;
+OBS_004;Fortnite;F2P;Currency_Confusion;Precios mostrados en monedas del juego CRED y glorias pasas;Menu_Principal;1;Multicolor;Pequeno;Disociacion_Financiera;FN_03;0:01:12;;
+OBS_005;Fortnite;F2P;False_Urgency;Cuenta atras que dan fin al evento;Menu_Principal;1;Azul;Pequeno;Aversion_a_la_Perdida;FN_03;0:01:12;;
+OBS_006;Fortnite;F2P;Sunk_Cost;Barra de progreso del nivel de la temporada en el menu de pausa;Menu_Principal;1;Naranja;Pequeno;Falacia_Coste_Hundido;FN_04;0:01:17;;
+OBS_007;Fortnite;F2P;Currency_Confusion;Menu de la tienda en la que aparecen los arti­culos con la moneda propia del juego, los Pavos;Menu_Principal;1;Multicolor;Medio;Disociacion_Financiera;FN_05;0:03:18;;
+OBS_008;Fortnite;F2P;Price_Anchoring;Una vez seleccionado un arti­culo de la tienda, sale debajo de la divisa propia su equivalente en Euros;Menu_Principal;1;Blanco;Pequeno;Efecto_Anclaje;FN_06;0:04:57;;
+OBS_009;Fortnite;F2P;Sunk_Cost;Pases de batalla con la barra de progreso y, todas las recompensas que tienes disponibles;Menu_Principal;1;Multicolor;Grande;Falacia_Coste_Hundido;FN_07;0:05:47;;
+OBS_010;Fortnite;F2P;Sunk_Cost;Progreso de las recompensas;Menu_Principal;1;Multicolor;Grande;Falacia_Coste_Hundido;FN_08;0:05:49;;
+OBS_011;Fortnite;F2P;False_Urgency;Cuenta atrás en la pagina de la tienda;Menu_Principal;1;Multicolor;Grande;Escasez;FN_08;0:05:49;;
+OBS_012;Fortnite;F2P;Playing_by_Appointment;En el apartado de competicion, vemos una gran cantidad de eventos para mantener a los usuarios alerta durante diferentes di­as de la semana;Menu_Principal;1;Azul;Grande;Formacion_Habitos;FN_09;0:06:26;;
+OBS_013;Fortnite;F2P;Preselection;Cuando la partida termina, el cursor esta sobre el boton para jugar de nuevo (Aunque no hay autoplay);In_Game;1;Amarillo;Medio;Sesgo_Status_Quo;FN_10;0:10:31;;
+OBS_014;Fortnite;F2P;Time_Obstruction;Perdida de la nocion del tiempo;In_Game;1;Multicolor;No;Disociacion_Temporal;FN_10;0:10:31;;
+OBS_015;Fortnite;F2P;Social_Proof;En el Lobby, tienes un tiempo de espera de 1 minuto en el que ves a los otros jugadores con sus skins y sus acciones cosmeticas;In_Game;1;No;Grande;Efecto_Arrastre_(Bandwagon);FN_11;0:07:37;;
+OBS_016;Fortnite;F2P;Reward_Manipulation;En partida, el numero de veces que te sale una notificacion de que has ganado experiencia por casi cualquier cosa. Del minuto 08:21 al 10:31;In_Game;4;Amarillo;Pequeno;Refuerzo_Intermitente;FN_12;0:08:21;;
+OBS_017;Fortnite;F2P;Reward_Manipulation;En partida, el numero de veces que te sale una notificacion de que has ganado experiencia por casi cualquier cosa. Del minuto 12:02 al 10:31;In_Game;24;Amarillo;Pequeno;Refuerzo_Intermitente;FN_13;0:10:21;;
+OBS_018;Fortnite;F2P;Reward_Manipulation;En partida, sale un cartel anunciando que has completado una mision y te dan muchos puntos de experiencia;In_Game;3;Verde;Pequeno;Refuerzo_Intermitente;FN_14;0:16:02;;True
+OBS_019;Fortnite;F2P;Reward_Manipulation;En partida, semuestra como subimos de nivel con un aviso;In_Game;2;Violeta;Pequeno;Refuerzo_Intermitente;FN_15;0:16:19;;True

@@ -8,7 +8,7 @@ plt.rcParams.update({'figure.autolayout': True})
 
 # 2. Cargar tu base de datos
 # Asegúrate de usar sep=';' porque exportaste desde Excel en español
-df = pd.read_csv('Daots_Corregido.csv', sep=';')
+df = pd.read_csv('Datos.csv', sep=';')
 
 # 3. GENERAR GRÁFICO 1: Frecuencia de Patrones Oscuros
 plt.figure(figsize=(10, 6))

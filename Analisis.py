@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -42,6 +43,22 @@ def reporte_basico(df: pd.DataFrame, output_dir: str):
     print(combo.head(15).to_string())
 
     combo.to_csv(os.path.join(output_dir, 'combo_categoria_sesgo.csv'), index=True)
+
+    # Cruces adicionales con porcentajes
+    crosstab = pd.crosstab(df['categoria_patron'], df['sesgo_psicologico'], margins=True, normalize=False)
+    crosstab_norm = pd.crosstab(df['categoria_patron'], df['sesgo_psicologico'], normalize='index')
+    crosstab_norm_col = pd.crosstab(df['categoria_patron'], df['sesgo_psicologico'], normalize='columns')
+
+    crosstab.to_csv(os.path.join(output_dir, 'crosstab_categoria_sesgo.csv'))
+    crosstab_norm.to_csv(os.path.join(output_dir, 'crosstab_categoria_sesgo_norm_row.csv'))
+    crosstab_norm_col.to_csv(os.path.join(output_dir, 'crosstab_categoria_sesgo_norm_col.csv'))
+
+    print('\nCrosstab base (con totales):')
+    print(crosstab)
+    print('\nCrosstab normalizado por fila (suma 1 en cada categoría de patrón):')
+    print(crosstab_norm)
+    print('\nCrosstab normalizado por columna (suma 1 en cada sesgo):')
+    print(crosstab_norm_col)
 
 
 def grafico_barras(series: pd.Series, title: str, xlabel: str, ylabel: str, filename: str, color: str):
@@ -98,6 +115,93 @@ def generar_informes(df: pd.DataFrame, output_dir: str):
         logging.info('No hay columnas numéricas para generar mapa de calor de correlación.')
 
 
+def apoyo_confianza_lift(df: pd.DataFrame, output_dir: str):
+    # Calcula soporte, confianza y lift para cruces entre categorias y sesgos
+    total = len(df)
+    marg_p = df['categoria_patron'].value_counts()
+    marg_s = df['sesgo_psicologico'].value_counts()
+    combo = df.groupby(['categoria_patron', 'sesgo_psicologico']).size().reset_index(name='n')
+
+    combo['soporte'] = combo['n'] / total
+    combo['confianza_patron_a_sesgo'] = combo['n'] / combo['categoria_patron'].map(marg_p)
+    combo['confianza_sesgo_a_patron'] = combo['n'] / combo['sesgo_psicologico'].map(marg_s)
+    combo['lift'] = combo['soporte'] / ((combo['categoria_patron'].map(marg_p) / total) * (combo['sesgo_psicologico'].map(marg_s) / total))
+
+    combo = combo.sort_values(by=['lift', 'confianza_patron_a_sesgo', 'soporte'], ascending=False)
+    combo.to_csv(os.path.join(output_dir, 'asociacion_patron_sesgo.csv'), index=False)
+
+    print('\nReglas de asociación (top 20 por lift):')
+    print(combo.head(20).to_string(index=False, formatters={
+        'soporte': '{:.3f}'.format,
+        'confianza_patron_a_sesgo': '{:.3f}'.format,
+        'confianza_sesgo_a_patron': '{:.3f}'.format,
+        'lift': '{:.3f}'.format,
+    }))
+
+
+def estadistico_chi_cuadrado(df: pd.DataFrame, output_dir: str):
+    from scipy.stats import chi2_contingency
+
+    cross = pd.crosstab(df['categoria_patron'], df['sesgo_psicologico'])
+    chi2, p, dof, expected = chi2_contingency(cross)
+
+    total = cross.values.sum()
+    n_rows, n_cols = cross.shape
+    cramer_v = np.sqrt(chi2 / (total * min(n_rows - 1, n_cols - 1))) if total > 0 else np.nan
+
+    row_mass = cross.sum(axis=1) / total
+    col_mass = cross.sum(axis=0) / total
+    expected_df = pd.DataFrame(expected, index=cross.index, columns=cross.columns)
+
+    adj_residuals = (cross - expected_df) / np.sqrt(
+        expected_df * (1 - row_mass.values.reshape(-1, 1)) * (1 - col_mass.values.reshape(1, -1))
+    )
+
+    result = {
+        'chi2': chi2,
+        'p_value': p,
+        'degrees_of_freedom': dof,
+        'cramer_v': cramer_v,
+        'observed_sum': total,
+    }
+
+    with open(os.path.join(output_dir, 'chi2_test.txt'), 'w', encoding='utf-8') as f:
+        f.write('Chi-cuadrado para categoria_patron vs sesgo_psicologico\n')
+        f.write(f'chi2: {chi2:.6f}\n')
+        f.write(f'p-value: {p:.6g}\n')
+        f.write(f'degrees_of_freedom: {dof}\n')
+        f.write(f'Cramer V: {cramer_v:.6f}\n')
+        f.write('Observaciones totales: %d\n\n' % total)
+
+        f.write('=== Matriz observada ===\n')
+        f.write(cross.to_string())
+        f.write('\n\n=== Matriz esperada ===\n')
+        f.write(expected_df.to_string())
+        f.write('\n\n=== Residuales ajustados ===\n')
+        f.write(adj_residuals.round(3).to_string())
+
+    logging.info('Prueba de chi-cuadrado guardada en %s', os.path.join(output_dir, 'chi2_test.txt'))
+
+    excel_path = os.path.join(output_dir, 'analisis_estadistico.xlsx')
+    with pd.ExcelWriter(excel_path, engine='xlsxwriter') as writer:
+        cross.to_excel(writer, sheet_name='observado')
+        expected_df.to_excel(writer, sheet_name='esperado')
+        (cross - expected_df).to_excel(writer, sheet_name='residuals')
+        adj_residuals.to_excel(writer, sheet_name='adj_residuals')
+
+    logging.info('Reporte de chi-cuadrado en Excel guardado en %s', excel_path)
+
+    print('\nResultados de chi-cuadrado:')
+    print(f'chi2 = {chi2:.6f}, p-value = {p:.6g}, dof = {dof}, cramer_v = {cramer_v:.6f}')
+
+    if p < 0.05:
+        print('Resultado significativo: se rechaza la hipótesis nula de independencia (p < 0.05).')
+    else:
+        print('No significativo: no se puede rechazar la hipótesis nula de independencia (p >= 0.05).')
+
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description='Análisis de patrones oscuros en Fortnite con gráficas y reportes.')
     parser.add_argument('--input', default='Datos.csv', help='Ruta al archivo CSV de entrada (separador ;).')
@@ -113,6 +217,19 @@ def main():
 
     reporte_basico(df, args.output)
     generar_informes(df, args.output)
+    apoyo_confianza_lift(df, args.output)
+    estadistico_chi_cuadrado(df, args.output)
+
+    # Cruces automáticos entre categorías adicionales (si existen)
+    cat_cols = [c for c in df.select_dtypes(include=['object', 'category']).columns if c not in REQUIRED_COLUMNS]
+    if cat_cols:
+        logging.info('Se encontraron columnas categóricas adicionales para cruces: %s', cat_cols)
+        for col in cat_cols:
+            cross = pd.crosstab(df[col], df['categoria_patron'], normalize='index')
+            cross.to_csv(os.path.join(args.output, f'crosstab_{col}_a_categoria_patron_norm.csv'))
+            print(f'Cruce normalizado {col} -> categoria_patron guardado: crosstab_{col}_a_categoria_patron_norm.csv')
+    else:
+        logging.info('No hay columnas categóricas adicionales para cruces.')
 
     print('\n¡Análisis completado! Gráficos y reportes exportados con éxito en %s' % args.output)
 

@@ -1,12 +1,13 @@
 import argparse
 import logging
 import os
-from datetime import datetime
+import sys
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import chi2_contingency
 
 # Configuración global
 sns.set_theme(style="whitegrid")
@@ -16,13 +17,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 REQUIRED_COLUMNS = ['categoria_patron', 'sesgo_psicologico']
 
 
-def validate_dataframe(df: pd.DataFrame):
+def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"Faltan columnas requeridas en el dataset: {missing}")
 
-    logging.info('Recuento de valores nulos por columna:')
-    logging.info('\n%s', df.isna().sum())
+    logging.info('Recuento de valores nulos por columna:\n%s', df.isna().sum().to_string())
 
     # Normalizar y reemplazar nulos para no romper conteos
     df['categoria_patron'] = df['categoria_patron'].fillna('Desconocido').astype(str)
@@ -32,14 +32,14 @@ def validate_dataframe(df: pd.DataFrame):
 
 
 def reporte_basico(df: pd.DataFrame, output_dir: str):
-    print('\nResumen de dataframe:')
+    print('\n--- Resumen de dataframe ---')
     print(df.describe(include='all').transpose())
 
     dupes = df.duplicated().sum()
-    print(f'Número de filas duplicadas: {dupes}')
+    print(f'\nNúmero de filas duplicadas: {dupes}')
 
     combo = df.groupby(['categoria_patron', 'sesgo_psicologico']).size().sort_values(ascending=False)
-    print('\nConteo por combinación categoria_patron + sesgo_psicologico:')
+    print('\nConteo por combinación categoria_patron + sesgo_psicologico (Top 15):')
     print(combo.head(15).to_string())
 
     combo.to_csv(os.path.join(output_dir, 'combo_categoria_sesgo.csv'), index=True)
@@ -55,10 +55,6 @@ def reporte_basico(df: pd.DataFrame, output_dir: str):
 
     print('\nCrosstab base (con totales):')
     print(crosstab)
-    print('\nCrosstab normalizado por fila (suma 1 en cada categoría de patrón):')
-    print(crosstab_norm)
-    print('\nCrosstab normalizado por columna (suma 1 en cada sesgo):')
-    print(crosstab_norm_col)
 
 
 def grafico_barras(series: pd.Series, title: str, xlabel: str, ylabel: str, filename: str, color: str):
@@ -76,9 +72,9 @@ def generar_informes(df: pd.DataFrame, output_dir: str):
     patron_counts = df['categoria_patron'].value_counts().sort_values(ascending=True)
     sesgo_counts = df['sesgo_psicologico'].value_counts().sort_values(ascending=True)
 
-    print('\nFrecuencia de Patrones Oscuros:')
+    print('\n--- Frecuencia de Patrones Oscuros ---')
     print(patron_counts.to_string())
-    print('\nSesgos Psicológicos Explotados:')
+    print('\n--- Sesgos Psicológicos Explotados ---')
     print(sesgo_counts.to_string())
 
     patron_counts.to_csv(os.path.join(output_dir, 'frecuencia_patrones.csv'))
@@ -102,22 +98,25 @@ def generar_informes(df: pd.DataFrame, output_dir: str):
         '#e6550d',
     )
 
-    if df.select_dtypes(include='number').shape[1] > 0:
-        corr = df.select_dtypes(include='number').corr()
+    numeric_cols = df.select_dtypes(include='number')
+    if numeric_cols.shape[1] > 1:
+        corr = numeric_cols.corr()
         plt.figure(figsize=(8, 6))
-        sns.heatmap(corr, annot=True, cmap='coolwarm')
+        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
         heatmap_path = os.path.join(output_dir, 'correlation_heatmap.png')
         plt.title('Mapa de Calor de Correlaciones (variables numéricas)')
         plt.savefig(heatmap_path, dpi=600, bbox_inches='tight')
         plt.close()
         logging.info('Heatmap de correlación guardado en %s', heatmap_path)
     else:
-        logging.info('No hay columnas numéricas para generar mapa de calor de correlación.')
+        logging.info('No hay suficientes columnas numéricas para generar mapa de calor de correlación.')
 
 
 def apoyo_confianza_lift(df: pd.DataFrame, output_dir: str):
-    # Calcula soporte, confianza y lift para cruces entre categorias y sesgos
     total = len(df)
+    if total == 0:
+        return
+
     marg_p = df['categoria_patron'].value_counts()
     marg_s = df['sesgo_psicologico'].value_counts()
     combo = df.groupby(['categoria_patron', 'sesgo_psicologico']).size().reset_index(name='n')
@@ -125,12 +124,16 @@ def apoyo_confianza_lift(df: pd.DataFrame, output_dir: str):
     combo['soporte'] = combo['n'] / total
     combo['confianza_patron_a_sesgo'] = combo['n'] / combo['categoria_patron'].map(marg_p)
     combo['confianza_sesgo_a_patron'] = combo['n'] / combo['sesgo_psicologico'].map(marg_s)
-    combo['lift'] = combo['soporte'] / ((combo['categoria_patron'].map(marg_p) / total) * (combo['sesgo_psicologico'].map(marg_s) / total))
+    
+    # Probabilidades marginales para el cálculo del lift
+    prob_p = combo['categoria_patron'].map(marg_p) / total
+    prob_s = combo['sesgo_psicologico'].map(marg_s) / total
+    combo['lift'] = combo['soporte'] / (prob_p * prob_s)
 
     combo = combo.sort_values(by=['lift', 'confianza_patron_a_sesgo', 'soporte'], ascending=False)
     combo.to_csv(os.path.join(output_dir, 'asociacion_patron_sesgo.csv'), index=False)
 
-    print('\nReglas de asociación (top 20 por lift):')
+    print('\n--- Reglas de asociación (top 20 por lift) ---')
     print(combo.head(20).to_string(index=False, formatters={
         'soporte': '{:.3f}'.format,
         'confianza_patron_a_sesgo': '{:.3f}'.format,
@@ -139,23 +142,29 @@ def apoyo_confianza_lift(df: pd.DataFrame, output_dir: str):
     }))
 
 
-def estadistico_chi_cuadrado(df: pd.DataFrame, output_dir: str):
-    from scipy.stats import chi2_contingency
-
+def estadistico_chi_cuadrado(df: pd.DataFrame, output_dir: str) -> dict:
     cross = pd.crosstab(df['categoria_patron'], df['sesgo_psicologico'])
+    
+    if cross.empty or cross.shape[0] < 2 or cross.shape[1] < 2:
+        logging.warning("Matriz insuficiente para calcular Chi-cuadrado.")
+        return {}
+
     chi2, p, dof, expected = chi2_contingency(cross)
 
     total = cross.values.sum()
     n_rows, n_cols = cross.shape
-    cramer_v = np.sqrt(chi2 / (total * min(n_rows - 1, n_cols - 1))) if total > 0 else np.nan
+    min_dim = min(n_rows - 1, n_cols - 1)
+    
+    # Prevención de división por cero
+    cramer_v = np.sqrt(chi2 / (total * min_dim)) if total > 0 and min_dim > 0 else np.nan
 
     row_mass = cross.sum(axis=1) / total
     col_mass = cross.sum(axis=0) / total
     expected_df = pd.DataFrame(expected, index=cross.index, columns=cross.columns)
 
-    adj_residuals = (cross - expected_df) / np.sqrt(
-        expected_df * (1 - row_mass.values.reshape(-1, 1)) * (1 - col_mass.values.reshape(1, -1))
-    )
+    # Prevención de división por cero en residuales ajustados
+    denominator = np.sqrt(expected_df * (1 - row_mass.values.reshape(-1, 1)) * (1 - col_mass.values.reshape(1, -1)))
+    adj_residuals = (cross - expected_df) / denominator.replace(0, np.nan)
 
     result = {
         'chi2': chi2,
@@ -171,7 +180,7 @@ def estadistico_chi_cuadrado(df: pd.DataFrame, output_dir: str):
         f.write(f'p-value: {p:.6g}\n')
         f.write(f'degrees_of_freedom: {dof}\n')
         f.write(f'Cramer V: {cramer_v:.6f}\n')
-        f.write('Observaciones totales: %d\n\n' % total)
+        f.write(f'Observaciones totales: {total}\n\n')
 
         f.write('=== Matriz observada ===\n')
         f.write(cross.to_string())
@@ -191,13 +200,13 @@ def estadistico_chi_cuadrado(df: pd.DataFrame, output_dir: str):
 
     logging.info('Reporte de chi-cuadrado en Excel guardado en %s', excel_path)
 
-    print('\nResultados de chi-cuadrado:')
+    print('\n--- Resultados de chi-cuadrado ---')
     print(f'chi2 = {chi2:.6f}, p-value = {p:.6g}, dof = {dof}, cramer_v = {cramer_v:.6f}')
 
     if p < 0.05:
-        print('Resultado significativo: se rechaza la hipótesis nula de independencia (p < 0.05).')
+        print('Resultado significativo: se rechaza la hipótesis nula de independencia (p < 0.05). Hay una relación estadísticamente significativa.')
     else:
-        print('No significativo: no se puede rechazar la hipótesis nula de independencia (p >= 0.05).')
+        print('No significativo: no se puede rechazar la hipótesis nula de independencia (p >= 0.05). Las variables parecen independientes.')
 
     return result
 
@@ -208,17 +217,31 @@ def main():
     parser.add_argument('--output', default='output', help='Directorio de salida para gráficos y CSV resultantes.')
     args = parser.parse_args()
 
+    if not os.path.exists(args.input):
+        logging.error('El archivo de entrada "%s" no existe. Abortando ejecución.', args.input)
+        sys.exit(1)
+
     os.makedirs(args.output, exist_ok=True)
 
     logging.info('Cargando datos desde %s', args.input)
-    df = pd.read_csv(args.input, sep=';')
+    try:
+        df = pd.read_csv(args.input, sep=';')
+    except Exception as e:
+        logging.error('Error al leer el CSV: %s', e)
+        sys.exit(1)
 
-    df = validate_dataframe(df)
+    try:
+        df = validate_dataframe(df)
+    except ValueError as e:
+        logging.error(e)
+        sys.exit(1)
 
     reporte_basico(df, args.output)
     generar_informes(df, args.output)
     apoyo_confianza_lift(df, args.output)
-    estadistico_chi_cuadrado(df, args.output)
+    
+    # Ahora sí capturamos el resultado por si quieres extender el código en el futuro
+    estadisticos = estadistico_chi_cuadrado(df, args.output)
 
     # Cruces automáticos entre categorías adicionales (si existen)
     cat_cols = [c for c in df.select_dtypes(include=['object', 'category']).columns if c not in REQUIRED_COLUMNS]
@@ -227,11 +250,11 @@ def main():
         for col in cat_cols:
             cross = pd.crosstab(df[col], df['categoria_patron'], normalize='index')
             cross.to_csv(os.path.join(args.output, f'crosstab_{col}_a_categoria_patron_norm.csv'))
-            print(f'Cruce normalizado {col} -> categoria_patron guardado: crosstab_{col}_a_categoria_patron_norm.csv')
+            logging.info('Cruce normalizado %s -> categoria_patron guardado.', col)
     else:
         logging.info('No hay columnas categóricas adicionales para cruces.')
 
-    print('\n¡Análisis completado! Gráficos y reportes exportados con éxito en %s' % args.output)
+    print('\n¡Análisis completado! Gráficos y reportes exportados con éxito en la carpeta: %s' % args.output)
 
 
 if __name__ == '__main__':

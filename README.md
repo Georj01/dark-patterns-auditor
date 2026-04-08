@@ -1,8 +1,8 @@
 # audit-patrones-oscuros
-*Este proyecto es parte de mi Trabajo de Fin de Grado (TFG) en Comunicación Audiovisual + UX.* 📫 **Jorge** 
+Este proyecto es parte de mi Trabajo de Fin de Grado (TFG) en Comunicación Audiovisual
 
 ### 📋 Descripción del Proyecto
-Análisis forense de **[Nombre de la App, ej: TikTok]** bajo la perspectiva de la Ética Digital y la Psicología del Usuario.
+Análisis de Videojuegos bajo la perspectiva de la Ética Digital y la Psicología del Usuario.
 Este proyecto documenta cómo se utilizan sesgos cognitivos para manipular la toma de decisiones (Dark Patterns) y propone un rediseño basado en la **Ley de Servicios Digitales (DSA)**.
 
 > **Objetivo:** Demostrar que es posible mantener métricas de negocio saludables sin explotar la vulnerabilidad del usuario.

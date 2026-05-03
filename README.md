@@ -1,4 +1,4 @@
-# Dark Patterns Auditor 🕵️‍♂️🎮
+# Dark Patterns Auditor
 
 > A quantitative analysis tool to identify and evaluate dark patterns and psychological biases in digital interfaces, with a case study focus on video games.
 

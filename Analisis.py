@@ -212,10 +212,23 @@ def estadistico_chi_cuadrado(df: pd.DataFrame, output_dir: str) -> dict:
 
 
 def main():
+    # 1. Calculamos el directorio absoluto donde reside este script
+    directorio_script = os.path.dirname(os.path.abspath(__file__))
+    
+    # 2. Definimos las rutas por defecto dinámicas
+    ruta_input_defecto = os.path.join(directorio_script, 'Datos.csv')
+    ruta_output_defecto = os.path.join(directorio_script, 'output')
+
     parser = argparse.ArgumentParser(description='Análisis de patrones oscuros en Fortnite con gráficas y reportes.')
-    parser.add_argument('--input', default='Datos.csv', help='Ruta al archivo CSV de entrada (separador ;).')
-    parser.add_argument('--output', default='output', help='Directorio de salida para gráficos y CSV resultantes.')
+    parser.add_argument('--input', default=ruta_input_defecto, help='Ruta al archivo CSV de entrada (separador ;).')
+    parser.add_argument('--output', default=ruta_output_defecto, help='Directorio de salida para gráficos y CSV resultantes.')
     args = parser.parse_args()
+
+    # Si se pasa una ruta relativa manualmente por consola, la convertimos a absoluta respecto al script
+    if not os.path.isabs(args.input):
+        args.input = os.path.join(directorio_script, args.input)
+    if not os.path.isabs(args.output):
+        args.output = os.path.join(directorio_script, args.output)
 
     if not os.path.exists(args.input):
         logging.error('El archivo de entrada "%s" no existe. Abortando ejecución.', args.input)

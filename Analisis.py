@@ -33,6 +33,13 @@ def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # Normalizar nulos
     df['categoria_patron'] = df['categoria_patron'].fillna('Desconocido').astype(str)
     df['sesgo_psicologico'] = df['sesgo_psicologico'].fillna('Desconocido').astype(str)
+    
+    if 'retorica_color' in df.columns:
+        df['retorica_color'] = df['retorica_color'].fillna('Desconocido').astype(str)
+    if 'retorica_tamano' in df.columns:
+        df['retorica_tamano'] = df['retorica_tamano'].fillna('Desconocido').astype(str)
+    if 'alerta_sonora' in df.columns:
+        df['alerta_sonora'] = df['alerta_sonora'].fillna('No').astype(str)
 
     return df
 
@@ -80,6 +87,18 @@ def generar_visuales_segmento(df_subset: pd.DataFrame, nombre_segmento: str, out
 
     grafico_barras(patron_counts, f'Frecuencia de Patrones Oscuros: {nombre_segmento}', 'Número de Impactos', 'Categoría', os.path.join(output_dir, f'patrones_{nombre_archivo}.png'), '#2b8cbe')
     grafico_barras(sesgo_counts, f'Sesgos Psicológicos Explotados: {nombre_segmento}', 'Número de Observaciones', 'Sesgo', os.path.join(output_dir, f'sesgos_{nombre_archivo}.png'), '#e6550d')
+
+    if 'retorica_color' in df_subset.columns:
+        color_counts = df_subset['retorica_color'].value_counts().sort_values(ascending=True)
+        grafico_barras(color_counts, f'Retórica Visual: Colores: {nombre_segmento}', 'Número de Observaciones', 'Color', os.path.join(output_dir, f'retorica_color_{nombre_archivo}.png'), '#31a354')
+
+    if 'retorica_tamano' in df_subset.columns:
+        tamano_counts = df_subset['retorica_tamano'].value_counts().sort_values(ascending=True)
+        grafico_barras(tamano_counts, f'Retórica Visual: Tamaños: {nombre_segmento}', 'Número de Observaciones', 'Tamaño', os.path.join(output_dir, f'retorica_tamano_{nombre_archivo}.png'), '#756bb1')
+
+    if 'alerta_sonora' in df_subset.columns:
+        sonido_counts = df_subset['alerta_sonora'].value_counts().sort_values(ascending=True)
+        grafico_barras(sonido_counts, f'Alertas Sonoras: {nombre_segmento}', 'Número de Observaciones', 'Alerta Sonora', os.path.join(output_dir, f'alerta_sonora_{nombre_archivo}.png'), '#de2d26')
 
 
 def generar_informes_y_graficos(df: pd.DataFrame, output_dir: str):

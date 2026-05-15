@@ -12,7 +12,7 @@ While the provided dataset focuses on *Fortnite*, the script is entirely platfor
 - **Descriptive Statistics**: Generates frequency counts and combination matrices of patterns and biases.
 - **Association Rules**: Calculates Support, Confidence, and Lift to uncover the strongest correlations between specific UI patterns and psychological triggers.
 - **Hypothesis Testing**: Performs Chi-Square tests of independence, outputting expected matrices, adjusted residuals, p-values, and Cramer's V for effect size.
-- **Automated Data Visualization**: Exports horizontal bar charts and correlation heatmaps using Seaborn and Matplotlib.
+- **Automated Data Visualization**: Exports horizontal bar charts and correlation heatmaps using Seaborn and Matplotlib. Includes automated segmentation for visual rhetoric (UI colors and element sizes) and sound alerts.
 - **Business-Ready Reporting**: Outputs all cross-tabulations and statistical matrices to Excel (`.xlsx`) and CSV formats for easy integration into academic papers or stakeholder presentations.
 
 ## 🛠️ Tech Stack
@@ -44,7 +44,14 @@ The input CSV should be separated by semicolons (`;`) and must include at least 
 - `categoria_patron`: The identified dark pattern (e.g., *False_Urgency*, *Sunk_Cost*).
 - `sesgo_psicologico`: The cognitive bias being exploited (e.g., *FOMO*, *Falacia_Coste_Hundido*).
 
-*Note: Any additional categorical columns (e.g., `ubicacion_ui`, `retorica_color`, `videojuego`) are automatically detected by the script and normalized cross-tabulations will be generated for them.*
+Optional columns that unlock specific visual charts and segmentations:
+- `retorica_color`: Colors used in the UI.
+- `retorica_tamano`: Sizes of the UI elements.
+- `alerta_sonora`: Presence of sound alerts.
+- `videojuego`: The specific game analyzed (generates per-game segmented reports).
+- `modelo`: Monetization model (generates per-model segmented reports).
+
+*Note: Any additional categorical columns (e.g., `ubicacion_ui`) are automatically detected by the script and normalized cross-tabulations will be generated for them.*
 
 ## 📊 Outputs Generated
 Upon execution, the script generates an `output/` directory containing:
